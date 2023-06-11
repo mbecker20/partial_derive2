@@ -7,8 +7,7 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     let DeriveInput {
         attrs,
         vis,
-        ident: ty,
-        generics,
+        ident,
         data,
         ..
     } = syn::parse(input).unwrap();
@@ -22,7 +21,7 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
         proc_macro2::TokenStream::new()
     };
 
-    let partial_ident = Ident::new(&format!("Partial{}", ty), Span::call_site());
+    let partial_ident = Ident::new(&format!("Partial{}", ident), Span::call_site());
 
     let fields = filter_fields(match data {
         syn::Data::Struct(ref s) => &s.fields,
@@ -31,33 +30,14 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
 
     let _field_var = fields.iter().map(|(vis, ident, ty)| {
         quote! {
-            #vis #ident: make_option(#ty)
+            #vis #ident: make_option::make_option!(#ty)
         }
     });
-    let convert_branch = fields.iter().map(|(_vis, ident, _ty)| {
-        quote! {
-            #ident: Some(src.#ident)
-        }
-    });
-
-    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
     let tokens = quote! {
         #[derive(#derives)]
-        #vis struct #partial_ident #ty_generics
-            #where_clause
-        {
+        #vis struct #partial_ident {
             #(#_field_var),*
-        }
-
-        impl #impl_generics From<#ty #ty_generics> for #partial_ident #ty_generics
-            #where_clause
-        {
-            fn from(src: #ty #ty_generics) -> #partial_ident #ty_generics {
-                #partial_ident {
-                    #(#convert_branch),*
-                }
-            }
         }
     };
     tokens.into()
@@ -77,14 +57,4 @@ fn filter_fields(fields: &Fields) -> Vec<(Visibility, Ident, Type)> {
             }
         })
         .collect::<Vec<_>>()
-}
-
-#[macro_use]
-macro_rules! make_option {
-    (Option<$ty:ty>) => {
-        Option<$ty>
-    };
-    ($ty:ty) => {
-        Option<$ty>
-    }
 }
