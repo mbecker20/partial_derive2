@@ -3,7 +3,7 @@ use proc_macro2::{Ident, Span};
 use quote::{quote, ToTokens};
 use syn::{DeriveInput, Fields, Type, Visibility};
 
-#[proc_macro_derive(Partial)]
+#[proc_macro_derive(Partial, attributes(partial_derive))]
 pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let DeriveInput {
         attrs,
@@ -15,7 +15,7 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     } = syn::parse(input).unwrap();
     let mut derives = Vec::new();
     for attr in attrs.into_iter() {
-        if attr.path.is_ident("derive") {
+        if attr.path().is_ident("partial_derive") {
             derives.push(attr.into_token_stream());
         }
     }

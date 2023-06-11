@@ -5,8 +5,8 @@ Like `Partial<T>` of `TypeScript`, makes all the properties of a struct type an 
 Provides `Partial` derive macro.
 
 ```rust
-#[derive(Partial)]
-#[derive(Clone)]
+#[derive(Partial, Clone)]
+#[partial_derive(Clone)]
 struct SomeStruct {
     pub field_one: i32,
     field_two: Vec<bool>,
