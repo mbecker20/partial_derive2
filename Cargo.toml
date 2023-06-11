@@ -1,15 +1,24 @@
-[package]
+[workspace]
+members = ["make_option"]
+
+[workspace.package]
+version = "0.1.2"
 authors = ["rise0chen <rise0chen@163.com>", "mbecker20 <becker.maxh@gmail.com>"]
 categories = ["rust-patterns"]
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/mbecker20/partial_derive2"
+
+[package]
+name = "partial_derive2"
 description = "makes all the properties of a struct type an optional property"
 documentation = "https://docs.rs/partial_derive2"
-edition = "2021"
-keywords = ["struct", "field"]
-license = "MIT"
-name = "partial_derive2"
-readme = "README.md"
-repository = "https://github.com/mbecker20/partial_derive2"
-version = "0.1.1"
+authors.workspace = true
+categories.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
 
 [dependencies]
 proc-macro2 = "1.0"

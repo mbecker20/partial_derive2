@@ -1,6 +1,5 @@
-use core::iter::FromIterator;
 use proc_macro2::{Ident, Span};
-use quote::{quote, ToTokens};
+use quote::quote;
 use syn::{DeriveInput, Fields, Type, Visibility};
 
 #[proc_macro_derive(Partial, attributes(partial_derive))]
@@ -13,17 +12,16 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
         data,
         ..
     } = syn::parse(input).unwrap();
-    let mut derives = Vec::new();
-    for attr in attrs.into_iter() {
-        if attr.path().is_ident("partial_derive") {
-            derives.push(attr.into_token_stream());
-        }
-    }
-    let derive = if derives.is_empty() {
-        proc_macro2::TokenStream::new()
+    let derives = attrs
+        .into_iter()
+        .find(|attr| attr.path().is_ident("partial_derive"));
+
+    let derives = if let Some(derives) = derives {
+        derives.parse_args().unwrap()
     } else {
-        proc_macro2::TokenStream::from_iter(derives.into_iter())
+        proc_macro2::TokenStream::new()
     };
+
     let partial_ident = Ident::new(&format!("Partial{}", ty), Span::call_site());
 
     let fields = filter_fields(match data {
@@ -33,7 +31,7 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
 
     let _field_var = fields.iter().map(|(vis, ident, ty)| {
         quote! {
-            #vis #ident: core::option::Option<#ty>
+            #vis #ident: make_option(#ty)
         }
     });
     let convert_branch = fields.iter().map(|(_vis, ident, _ty)| {
@@ -45,7 +43,7 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
     let tokens = quote! {
-        #derive
+        #[derive(#derives)]
         #vis struct #partial_ident #ty_generics
             #where_clause
         {
@@ -79,4 +77,14 @@ fn filter_fields(fields: &Fields) -> Vec<(Visibility, Ident, Type)> {
             }
         })
         .collect::<Vec<_>>()
+}
+
+#[macro_use]
+macro_rules! make_option {
+    (Option<$ty:ty>) => {
+        Option<$ty>
+    };
+    ($ty:ty) => {
+        Option<$ty>
+    }
 }
