@@ -2,7 +2,7 @@ use proc_macro2::{Ident, Span};
 use quote::quote;
 use syn::{DeriveInput, Fields, Type, Visibility};
 
-#[proc_macro_derive(Partial, attributes(partial_derive))]
+#[proc_macro_derive(Partial, attributes(partial_derive, partial_attr))]
 pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let DeriveInput {
         attrs,
@@ -11,12 +11,23 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
         data,
         ..
     } = syn::parse(input).unwrap();
+
+    let partial_attrs = attrs
+        .iter()
+        .filter(|attr| attr.path().is_ident("partial_attr"))
+        .map(|attr| {
+            attr.parse_args::<proc_macro2::TokenStream>()
+                .expect("failed to parse partial_attr")
+        });
+
     let derives = attrs
-        .into_iter()
+        .iter()
         .find(|attr| attr.path().is_ident("partial_derive"));
 
     let derives = if let Some(derives) = derives {
-        derives.parse_args().unwrap()
+        derives
+            .parse_args()
+            .expect("failed to parse partial_derive")
     } else {
         proc_macro2::TokenStream::new()
     };
@@ -34,13 +45,14 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
         }
     });
 
-    let tokens = quote! {
+    quote! {
+        #(#partial_attrs)*
         #[derive(#derives)]
         #vis struct #partial_ident {
             #(#_field_var),*
         }
-    };
-    tokens.into()
+    }
+    .into()
 }
 
 fn filter_fields(fields: &Fields) -> Vec<(Visibility, Ident, Type)> {
