@@ -2,7 +2,7 @@ use proc_macro2::{Ident, Span};
 use quote::quote;
 use syn::{DeriveInput, Fields, Type, Visibility};
 
-#[proc_macro_derive(Partial, attributes(partial_derive, partial_attr))]
+#[proc_macro_derive(Partial, attributes(partial_derive, skip_serializing_none))]
 pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let DeriveInput {
         attrs,
@@ -12,13 +12,9 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
         ..
     } = syn::parse(input).unwrap();
 
-    let partial_attrs = attrs
+    let skip_serializing = attrs
         .iter()
-        .filter(|attr| attr.path().is_ident("partial_attr"))
-        .map(|attr| {
-            attr.parse_args::<proc_macro2::TokenStream>()
-                .expect("failed to parse partial_attr")
-        });
+        .any(|attr| attr.path().is_ident("skip_serializing_none"));
 
     let derives = attrs
         .iter()
@@ -39,17 +35,31 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
         _ => panic!("Field can only be derived for structs"),
     });
 
-    let _field_var = fields.iter().map(|(vis, ident, ty)| {
-        quote! {
-            #vis #ident: make_option::make_option!(#ty)
-        }
-    });
+    let fields: Vec<_> = if skip_serializing {
+        fields
+            .iter()
+            .map(|(vis, ident, ty)| {
+                quote! {
+                    #[serde(skip_serializing_if = "Option::is_none")]
+                    #vis #ident: make_option::make_option!(#ty)
+                }
+            })
+            .collect()
+    } else {
+        fields
+            .iter()
+            .map(|(vis, ident, ty)| {
+                quote! {
+                    #vis #ident: make_option::make_option!(#ty)
+                }
+            })
+            .collect()
+    };
 
     quote! {
-        #(#partial_attrs)*
         #[derive(#derives)]
         #vis struct #partial_ident {
-            #(#_field_var),*
+            #(#fields),*
         }
     }
     .into()
