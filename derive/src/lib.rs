@@ -41,20 +41,20 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
             .map(|(vis, ident, ty, _)| {
                 quote! {
                     #[serde(skip_serializing_if = "Option::is_none")]
-                    #vis #ident: make_option::make_option!(#ty)
+                    #vis #ident: partial_derive2::make_option!(#ty)
                 }
             })
             .collect()
     } else {
         fields
             .iter()
-            .map(|(vis, ident, ty, _)| quote!(#vis #ident: make_option::make_option!(#ty)))
+            .map(|(vis, ident, ty, _)| quote!(#vis #ident: partial_derive2::make_option!(#ty)))
             .collect()
     };
 
     let partial_from_fields = fields
         .iter()
-        .map(|(_, ident, ty, _)| quote!(#ident: make_option::value_as_option!(#ty, value.#ident)));
+        .map(|(_, ident, ty, _)| quote!(#ident: partial_derive2::value_as_option!(#ty, value.#ident)));
 
     let derive_from_partial = attrs
         .iter()
@@ -63,7 +63,7 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
             let partial_to_fields = fields
                 .iter()
                 .map(|(_, ident, ty, def)| quote!{
-                    #ident: make_option::value_maybe_as_option!(#ty, value.#ident.unwrap_or(#def), value.#ident)
+                    #ident: partial_derive2::value_maybe_as_option!(#ty, value.#ident.unwrap_or(#def), value.#ident)
                 });
             quote! {
                 impl From<#partial_ident> for #ident {
