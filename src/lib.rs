@@ -1,8 +1,12 @@
+// use make_option::{is_option, make_option};
 use proc_macro2::{Ident, Span};
 use quote::quote;
-use syn::{DeriveInput, Fields, Type, Visibility};
+use syn::{Data, DeriveInput, Expr, Field, Type, Visibility};
 
-#[proc_macro_derive(Partial, attributes(partial_derive, skip_serializing_none))]
+#[proc_macro_derive(
+    Partial,
+    attributes(partial_derive, derive_from, skip_serializing_none, partial_default)
+)]
 pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let DeriveInput {
         attrs,
@@ -30,15 +34,12 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
 
     let partial_ident = Ident::new(&format!("Partial{}", ident), Span::call_site());
 
-    let fields = filter_fields(match data {
-        syn::Data::Struct(ref s) => &s.fields,
-        _ => panic!("Field can only be derived for structs"),
-    });
+    let fields = get_fields(data);
 
-    let fields: Vec<_> = if skip_serializing {
+    let partial_fields: Vec<_> = if skip_serializing {
         fields
             .iter()
-            .map(|(vis, ident, ty)| {
+            .map(|(vis, ident, ty, _)| {
                 quote! {
                     #[serde(skip_serializing_if = "Option::is_none")]
                     #vis #ident: make_option::make_option!(#ty)
@@ -48,35 +49,78 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     } else {
         fields
             .iter()
-            .map(|(vis, ident, ty)| {
-                quote! {
-                    #vis #ident: make_option::make_option!(#ty)
-                }
-            })
+            .map(|(vis, ident, ty, _)| quote!(#vis #ident: make_option!(#ty)))
             .collect()
     };
+
+    let partial_from_fields = fields
+        .iter()
+        .map(|(_, ident, _, _)| quote!(#ident: Some(value.#ident)));
+
+    let derive_from_partial = attrs
+        .iter()
+        .find(|a| a.path().is_ident("derive_from"))
+        .map(|_| {
+            let partial_to_fields = fields
+                .iter()
+                .map(|(_, ident, _, def)| quote!(#ident: value.#ident.unwrap_or(#def)));
+            quote! {
+                impl From<#partial_ident> for #ident {
+                    fn from(value: #partial_ident) -> #ident {
+                        #ident {
+                            #(#partial_to_fields),*
+                        }
+                    }
+                }
+            }
+        });
 
     quote! {
         #[derive(#derives)]
         #vis struct #partial_ident {
-            #(#fields),*
+            #(#partial_fields),*
         }
+
+        impl From<#ident> for #partial_ident {
+            fn from(value: #ident) -> #partial_ident {
+                #partial_ident {
+                    #(#partial_from_fields),*
+                }
+            }
+        }
+
+        #derive_from_partial
     }
     .into()
 }
 
-fn filter_fields(fields: &Fields) -> Vec<(Visibility, Ident, Type)> {
+fn get_fields(data: Data) -> Vec<(Visibility, Ident, Type, proc_macro2::TokenStream)> {
+    let fields = if let Data::Struct(s) = data {
+        s.fields
+    } else {
+        panic!("Partial can only be derived for structs")
+    };
     fields
-        .iter()
-        .filter_map(|field| {
-            if field.ident.is_some() {
-                let field_vis = field.vis.clone();
-                let field_ident = field.ident.as_ref().unwrap().clone();
-                let field_ty = field.ty.clone();
-                Some((field_vis, field_ident, field_ty))
-            } else {
-                None
-            }
-        })
+        .into_iter()
+        .filter_map(
+            |Field {
+                 vis,
+                 attrs,
+                 ident,
+                 ty,
+                 ..
+             }| {
+                let def = attrs.iter().find(|a| a.path().is_ident("partial_default"));
+                let def = if let Some(def) = def {
+                    let def: Expr = def
+                        .parse_args()
+                        .expect("failed to parse partial_default argument");
+                    quote!(#def)
+                } else {
+                    quote!(Default::default())
+                };
+                ident.map(|ident| (vis, ident, ty, def))
+            },
+        )
         .collect::<Vec<_>>()
 }
