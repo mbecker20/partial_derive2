@@ -1,4 +1,3 @@
-// use make_option::{is_option, make_option};
 use proc_macro2::{Ident, Span};
 use quote::quote;
 use syn::{Data, DeriveInput, Expr, Field, Type, Visibility};
