@@ -1,14 +1,4 @@
 #[macro_export]
-macro_rules! is_option {
-    (Option<$ty:ty>) => {
-        true
-    };
-    ($ty:ty) => {
-        false
-    };
-}
-
-#[macro_export]
 macro_rules! make_option {
     (Option<$ty:ty>) => {
         Option<$ty>
@@ -16,4 +6,14 @@ macro_rules! make_option {
     ($ty:ty) => {
         Option<$ty>
     }
+}
+
+#[macro_export]
+macro_rules! value_as_option {
+    (Option<$ty:ty>, $expr:expr) => {
+        $expr
+    };
+    ($ty:ty, $expr:expr) => {
+        Some($expr)
+    };
 }

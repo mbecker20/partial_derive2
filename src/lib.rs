@@ -49,13 +49,13 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     } else {
         fields
             .iter()
-            .map(|(vis, ident, ty, _)| quote!(#vis #ident: make_option!(#ty)))
+            .map(|(vis, ident, ty, _)| quote!(#vis #ident: make_option::make_option!(#ty)))
             .collect()
     };
 
     let partial_from_fields = fields
         .iter()
-        .map(|(_, ident, _, _)| quote!(#ident: Some(value.#ident)));
+        .map(|(_, ident, ty, _)| quote!(#ident: make_option::value_as_option!(#ty, value.#ident)));
 
     let derive_from_partial = attrs
         .iter()

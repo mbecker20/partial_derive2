@@ -2,7 +2,7 @@
 members = ["make_option"]
 
 [workspace.package]
-version = "0.1.5"
+version = "0.1.6"
 authors = ["rise0chen <rise0chen@163.com>", "mbecker20 <becker.maxh@gmail.com>"]
 categories = ["rust-patterns"]
 edition = "2021"
