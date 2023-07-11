@@ -17,3 +17,13 @@ macro_rules! value_as_option {
         Some($expr)
     };
 }
+
+#[macro_export]
+macro_rules! value_maybe_as_option {
+    (Option<$ty:ty>, $_:expr, $expr:expr) => {
+        $expr
+    };
+    ($ty:ty, $expr:expr, $_:expr) => {
+        $expr
+    };
+}

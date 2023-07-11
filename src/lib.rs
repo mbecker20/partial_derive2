@@ -5,7 +5,7 @@ use syn::{Data, DeriveInput, Expr, Field, Type, Visibility};
 
 #[proc_macro_derive(
     Partial,
-    attributes(partial_derive, derive_from, skip_serializing_none, partial_default)
+    attributes(partial_derive, partial_from, skip_serializing_none, partial_default)
 )]
 pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let DeriveInput {
@@ -59,11 +59,13 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
 
     let derive_from_partial = attrs
         .iter()
-        .find(|a| a.path().is_ident("derive_from"))
+        .find(|a| a.path().is_ident("partial_from"))
         .map(|_| {
             let partial_to_fields = fields
                 .iter()
-                .map(|(_, ident, _, def)| quote!(#ident: value.#ident.unwrap_or(#def)));
+                .map(|(_, ident, ty, def)| quote!{
+                    #ident: make_option::value_maybe_as_option!(#ty, value.#ident.unwrap_or(#def), value.#ident)
+                });
             quote! {
                 impl From<#partial_ident> for #ident {
                     fn from(value: #partial_ident) -> #ident {
