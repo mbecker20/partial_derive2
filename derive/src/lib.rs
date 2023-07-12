@@ -52,9 +52,18 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
             .collect()
     };
 
-    let partial_from_fields = fields
-        .iter()
-        .map(|(_, ident, ty, _)| quote!(#ident: partial_derive2::value_as_option!(#ty, value.#ident)));
+    let merge_fields = fields.iter().map(|(_, ident, ty, _)| {
+        quote!(#ident: partial_derive2::value_maybe_as_option!(#ty, partial.#ident.unwrap_or(self.#ident), partial.#ident))
+    });
+    let merge_in_place_fields = fields.iter().map(|(_, ident, ty, _)| {
+        quote! {
+            self.#ident = partial_derive2::value_maybe_as_option!(#ty, partial.#ident.unwrap_or(self.#ident), partial.#ident)
+        }
+    });
+
+    let partial_from_fields = fields.iter().map(
+        |(_, ident, ty, _)| quote!(#ident: partial_derive2::value_as_option!(#ty, value.#ident)),
+    );
 
     let derive_from_partial = attrs
         .iter()
@@ -80,6 +89,18 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
         #[derive(#derives)]
         #vis struct #partial_ident {
             #(#partial_fields),*
+        }
+
+        impl partial_derive2::HasPartial for #ident {
+            type Partial = #partial_ident;
+            fn merge_partial(self, partial: Self::Partial) -> #ident {
+                #ident {
+                    #(#merge_fields),*
+                }
+            }
+            fn merge_partial_in_place(&mut self, partial: Self::Partial) {
+                #(#merge_in_place_fields);*
+            }
         }
 
         impl From<#ident> for #partial_ident {

@@ -2,7 +2,7 @@
 members = ["derive"]
 
 [workspace.package]
-version = "0.1.9"
+version = "0.2.0"
 authors = ["rise0chen <rise0chen@163.com>", "mbecker20 <becker.maxh@gmail.com>"]
 categories = ["rust-patterns"]
 edition = "2021"

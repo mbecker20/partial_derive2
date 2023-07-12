@@ -1,5 +1,11 @@
 pub use partial_derive2_derive::*;
 
+pub trait HasPartial {
+    type Partial;
+    fn merge_partial(self, partial: Self::Partial) -> Self;
+    fn merge_partial_in_place(&mut self, partial: Self::Partial);
+}
+
 #[macro_export]
 macro_rules! make_option {
     (Option<$ty:ty>) => {
