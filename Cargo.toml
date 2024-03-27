@@ -2,7 +2,7 @@
 members = ["derive"]
 
 [workspace.package]
-version = "0.2.1"
+version = "0.2.2"
 authors = ["rise0chen <rise0chen@163.com>", "mbecker20 <becker.maxh@gmail.com>"]
 categories = ["rust-patterns"]
 edition = "2021"
@@ -22,4 +22,4 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-partial_derive2_derive = "0.2.1"
+partial_derive2_derive = "0.2.2"
