@@ -120,14 +120,19 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
       }
     });
     quote! {
-      impl partial_derive2::PartialDiff for #ident {
-        type Partial = #partial_ident;
+      impl partial_derive2::PartialDiff<#partial_ident> for #ident {
         fn partial_diff(&self, partial: #partial_ident) -> #partial_ident {
           #partial_ident {
             #(#fields),*
           }
         }
       }
+    }
+  });
+
+  let is_none_fields = fields.iter().map(|(_, ident, _, _, _)| {
+    quote! {
+      self.#ident.is_none()
     }
   });
 
@@ -146,6 +151,12 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
         #ident {
           #(#merge_fields),*
         }
+      }
+    }
+
+    impl partial_derive2::MaybeNone for #partial_ident {
+      fn is_none(&self) -> bool {
+        #(#is_none_fields) &&*
       }
     }
 
