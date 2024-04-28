@@ -16,7 +16,7 @@ pub trait PartialDiff {
   type Partial;
   /// Diffs a partial against self, returning a partial where all "Some" fields
   /// are not equal to the corresponding field on Self.
-  fn partial_diff(self, partial: Self::Partial) -> Self::Partial;
+  fn partial_diff(&self, partial: Self::Partial) -> Self::Partial;
 }
 
 #[macro_export]

@@ -4,12 +4,7 @@ use syn::{Data, DeriveInput, Expr, Field, Type, Visibility};
 
 #[proc_macro_derive(
   Partial,
-  attributes(
-    partial,
-    partial_derive,
-    partial_attr,
-    partial_default,
-  )
+  attributes(partial, partial_derive, partial_attr, partial_default,)
 )]
 pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
   let DeriveInput {
@@ -113,10 +108,12 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     let fields = fields.iter().map(|(_, ident, ty, _, _)| {
       quote! {
         #ident: {
-          let field = partial_derive2::value_as_option!(#ty, self.#ident);
-          match (partial.#ident, field) {
+          match (
+            partial.#ident,
+            partial_derive2::value_as_option!(#ty, &self.#ident)
+          ) {
             (Some(value), None) => Some(value),
-            (Some(value), Some(field)) if value != field => Some(value),
+            (Some(value), Some(field)) if &value != field => Some(value),
             _ => None,
           }
         }
@@ -125,7 +122,7 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     quote! {
       impl partial_derive2::PartialDiff for #ident {
         type Partial = #partial_ident;
-        fn partial_diff(self, partial: #partial_ident) -> #partial_ident {
+        fn partial_diff(&self, partial: #partial_ident) -> #partial_ident {
           #partial_ident {
             #(#fields),*
           }
