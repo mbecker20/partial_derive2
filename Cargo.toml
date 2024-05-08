@@ -22,6 +22,6 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-# partial_derive2_derive = "0.3.2"
-partial_derive2_derive = { path = "derive" }
+partial_derive2_derive = "0.4.0"
+# partial_derive2_derive = { path = "derive" }
 
