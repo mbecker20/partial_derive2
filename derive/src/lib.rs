@@ -105,26 +105,99 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     });
 
   let derive_partial_diff = derive_partial_diff.then(|| {
-    let fields = fields.iter().map(|(_, ident, ty, _, _)| {
+    let diff_ident = Ident::new(&format!("{}Diff", ident), Span::call_site());
+
+    let diff_struct_fields = if skip_serializing {
+      fields
+        .iter()
+        .map(|(_, ident, ty, _, _)| {
+          quote! {
+            #[serde(skip_serializing_if = "Option::is_none")]
+            #ident: Option<(#ty, #ty)>
+          }
+        })
+        .collect::<Vec<_>>()
+    } else {
+      fields
+        .iter()
+        .map(|(vis, ident, ty, _, _)| {
+          quote! {
+            #vis #ident: Option<(#ty, #ty)>
+          }
+        })
+        .collect::<Vec<_>>()
+    };
+
+    let diff_from_fields = fields.iter().map(|(_, ident, ty, _, _)| {
+      quote! {
+        #ident: partial_derive2::value_maybe_as_option!(
+          #ty,
+          value.#ident.map(|item| item.1),
+          value.#ident.map(|item| item.1).flatten()
+        )
+      }
+    });
+
+    let diff_trait_fields = fields.iter().map(|(_, ident, ty, _, _)| {
       quote! {
         #ident: {
           match (
+            partial_derive2::value_as_option!(#ty, &self.#ident),
             partial.#ident,
-            partial_derive2::value_as_option!(#ty, &self.#ident)
           ) {
-            (Some(value), None) => Some(value),
-            (Some(value), Some(field)) if &value != field => Some(value),
+            (None, Some(value)) => Some((
+              partial_derive2::value_maybe_as_option!(#ty, self.#ident.clone(), None),
+              partial_derive2::value_maybe_as_option!(#ty, value, Some(value))
+            )),
+            (Some(field), Some(value)) if &value != field => Some((
+              partial_derive2::value_maybe_as_option!(#ty, field.clone(), Some(field.clone())),
+              partial_derive2::value_maybe_as_option!(#ty, value, Some(value))
+            )),
             _ => None,
           }
         }
       }
     });
+
+    let diff_iter_items = fields.iter().map(|(_, ident, _, _, _)| {
+      quote! {
+        self.#ident.as_ref().map(|(prev, curr)| partial_derive2::FieldDiff {
+          field: stringify!(#ident),
+          from: format!("{prev:?}"),
+          to: format!("{curr:?}"),
+        })
+      }
+    });
+
     quote! {
-      impl partial_derive2::PartialDiff<#partial_ident> for #ident {
-        fn partial_diff(&self, partial: #partial_ident) -> #partial_ident {
+      #[derive(#derives)]
+      #vis struct #diff_ident {
+        #(#diff_struct_fields),*
+      }
+
+      impl From<#diff_ident> for #partial_ident {
+        fn from(value: #diff_ident) -> #partial_ident {
           #partial_ident {
-            #(#fields),*
+            #(#diff_from_fields),*
           }
+        }
+      }
+
+      impl partial_derive2::PartialDiff<#partial_ident, #diff_ident> for #ident {
+        fn partial_diff(&self, partial: #partial_ident) -> #diff_ident {
+          #diff_ident {
+            #(#diff_trait_fields),*
+          }
+        }
+      }
+
+      impl partial_derive2::Diff for #diff_ident {
+        fn iter_field_diffs(&self) -> impl Iterator<Item = partial_derive2::FieldDiff> {
+          [
+            #(#diff_iter_items),*
+          ]
+            .into_iter()
+            .flatten()
         }
       }
     }

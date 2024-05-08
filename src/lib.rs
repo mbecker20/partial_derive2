@@ -14,12 +14,45 @@ pub trait MaybeNone {
 }
 
 /// This is implemented on the "Full" struct if #[partial(diff)] is specified.
-/// Required all fields on the "Full" struct to implement [PartialEq]
-pub trait PartialDiff<Partial> {
+/// Requires all fields on the "Full" struct to implement [PartialEq]
+pub trait PartialDiff<P, D: Diff + Into<P>> {
   /// Diffs a partial against self, returning a partial where all "Some" fields
   /// are not equal to the corresponding field on Self.
-  fn partial_diff(&self, partial: Partial) -> Partial;
+  fn partial_diff(&self, partial: P) -> D;
+
+  fn minimize_partial(&self, partial: P) -> P {
+    self.partial_diff(partial).into()
+  }
 }
+
+#[derive(Debug)]
+pub struct FieldDiff {
+  /// The name of diffed field
+  pub field: &'static str,
+  /// The previous value Debug formatted
+  pub from: String,
+  /// The current value Debug formatted
+  pub to: String,
+}
+
+/// This is implemented on the "Diff" struct if #[partial(diff)] is specified.
+/// Requires all fields on the "Full" struct to implement [std::fmt::Debug]
+pub trait Diff {
+  fn iter_field_diffs(&self) -> impl Iterator<Item = FieldDiff>;
+
+  // /// Takes a formatting function for lines to push for each field.
+  // /// The formatting function consumes the field name and debug formatted prev and curr values.
+  // /// format_field: (field_name, prev_value, curr_value) -> line
+  // fn format_diff(&self, format_field: impl Fn(&'static str, String, String) -> String) -> String;
+
+  // fn format_diff_default(&self) -> String {
+  //   self.format_diff(default_diff_formatter)
+  // }
+}
+
+// pub fn default_diff_formatter(field: &'static str, prev: String, curr: String) -> String {
+//   format!("{field}: {prev} => {curr} \n")
+// }
 
 #[macro_export]
 macro_rules! make_option {
