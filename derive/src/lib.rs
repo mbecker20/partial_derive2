@@ -169,10 +169,22 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
       }
     });
 
+    let is_none_fields = fields.iter().map(|(_, ident, _, _, _)| {
+      quote! {
+        self.#ident.is_none()
+      }
+    });
+
     quote! {
       #[derive(#derives)]
       #vis struct #diff_ident {
         #(#diff_struct_fields),*
+      }
+
+      impl partial_derive2::MaybeNone for #diff_ident {
+        fn is_none(&self) -> bool {
+          #(#is_none_fields) &&*
+        }
       }
 
       impl From<#diff_ident> for #partial_ident {
