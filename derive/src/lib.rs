@@ -159,13 +159,74 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
       }
     });
 
-    let diff_iter_items = fields.iter().map(|(_, ident, _, _, _)| {
+    let diff_iter_items = fields.iter().map(|(_, ident, ty, _, _)| {
       quote! {
-        self.#ident.as_ref().map(|(prev, curr)| partial_derive2::FieldDiff {
-          field: stringify!(#ident),
-          from: format!("{prev:?}"),
-          to: format!("{curr:?}"),
-        })
+        self.#ident.as_ref().map(|(prev, curr)| partial_derive2::value_maybe_as_vec!(
+          #ty,
+          partial_derive2::FieldDiff {
+            field: stringify!(#ident),
+            from: format!("{prev:?}"),
+            to: format!("{curr:?}"),
+          },
+          {
+            let mut from = String::from("[");
+            let mut to = String::from("[");
+            let max = std::cmp::max(prev.len(), curr.len());
+            let mut unchanged = 0;
+            for i in 0..max {
+              match (prev.get(i), curr.get(i)) {
+                (Some(prev), Some(curr)) => {
+                  if prev == curr {
+                    unchanged += 1;
+                    if i == max - 1 {
+                      from.push_str(&format!("...{unchanged} unchanged"));
+                      to.push_str(&format!("...{unchanged} unchanged"));
+                    }
+                    continue;
+                  } else {
+                    if unchanged > 0 {
+                      from.push_str(&format!("...{unchanged} unchanged, "));
+                      to.push_str(&format!("...{unchanged} unchanged, "));
+                      unchanged = 0;
+                    }
+                    from.push_str(&format!("{i}: {prev:?}"));
+                    to.push_str(&format!("{i}: {curr:?}"));
+                  }
+                },
+                (Some(prev), None) => {
+                  if unchanged > 0 {
+                    from.push_str(&format!("...{unchanged} unchanged, "));
+                    to.push_str(&format!("...{unchanged} unchanged, "));
+                    unchanged = 0;
+                  }
+                  from.push_str(&format!("{i}: {prev:?}"));
+                  to.push_str(&format!("{i}: None"));
+                },
+                (None, Some(curr)) => {
+                  if unchanged > 0 {
+                    from.push_str(&format!("...{unchanged} unchanged, "));
+                    to.push_str(&format!("...{unchanged} unchanged, "));
+                    unchanged = 0;
+                  }
+                  from.push_str(&format!("{i}: None"));
+                  to.push_str(&format!("{i}: {curr:?}"));
+                },
+                (None, None) => unreachable!()
+              }
+              if i < max - 1 {
+                from.push_str(", ");
+                to.push_str(", ");
+              }
+            }
+            from.push_str("]");
+            to.push_str("]");
+            partial_derive2::FieldDiff {
+              field: stringify!(#ident),
+              from,
+              to,
+            }
+          }
+        ))
       }
     });
 

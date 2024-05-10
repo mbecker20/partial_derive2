@@ -83,3 +83,13 @@ macro_rules! value_maybe_as_option {
     $expr
   };
 }
+
+#[macro_export]
+macro_rules! value_maybe_as_vec {
+  (Vec<$ty:ty>, $_:expr, $expr:expr) => {
+    $expr
+  };
+  ($ty:ty, $expr:expr, $_:expr) => {
+    $expr
+  };
+}

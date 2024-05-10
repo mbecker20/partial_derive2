@@ -8,6 +8,13 @@ struct User {
   desc: String,
   enabled: bool,
   age: i64,
+  things: Vec<Thing>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct Thing {
+  ab: String,
+  cd: bool,
 }
 
 fn main() {
@@ -16,6 +23,28 @@ fn main() {
     desc: String::from(""),
     enabled: true,
     age: 40,
+    things: vec![
+      Thing {
+        ab: String::from("coolio1"),
+        cd: true,
+      },
+      Thing {
+        ab: String::from("coolio1"),
+        cd: true,
+      },
+      Thing {
+        ab: String::from("coolio1"),
+        cd: true,
+      },
+      Thing {
+        ab: String::from("coolio1"),
+        cd: true,
+      },
+      Thing {
+        ab: String::from("coolio1"),
+        cd: true,
+      },
+    ],
   };
 
   let partial = PartialUser {
@@ -23,6 +52,28 @@ fn main() {
     desc: None,
     enabled: Some(false),
     age: Some(40),
+    things: Some(vec![
+      Thing {
+        ab: String::from("coolio1"),
+        cd: true,
+      },
+      Thing {
+        ab: String::from("coolio1"),
+        cd: true,
+      },
+      Thing {
+        ab: String::from("coolio1"),
+        cd: true,
+      },
+      Thing {
+        ab: String::from("coolio3"),
+        cd: true,
+      },
+      Thing {
+        ab: String::from("coolio1"),
+        cd: true,
+      },
+    ]),
   };
 
   let diff = user.partial_diff(partial);
