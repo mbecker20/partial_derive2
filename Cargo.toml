@@ -12,8 +12,8 @@ description = "makes all the properties of a struct type an optional property"
 
 [package]
 name = "partial_derive2"
-description = "makes all the properties of a struct type an optional property"
 documentation = "https://docs.rs/partial_derive2"
+description.workspace = true
 authors.workspace = true
 categories.workspace = true
 edition.workspace = true
