@@ -2,8 +2,8 @@
 members = ["derive", "example"]
 
 [workspace.package]
-description = "makes all the properties of a struct type an optional property"
 version = "0.4.2"
+description = "makes all the properties of a struct type an optional property"
 authors = ["rise0chen <rise0chen@163.com>", "mbecker20 <becker.maxh@gmail.com>"]
 categories = ["rust-patterns"]
 edition = "2021"
