@@ -110,10 +110,10 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     let diff_struct_fields = if skip_serializing {
       fields
         .iter()
-        .map(|(_, ident, ty, _, _)| {
+        .map(|(vis, ident, ty, _, _)| {
           quote! {
             #[serde(skip_serializing_if = "Option::is_none")]
-            #ident: Option<(#ty, #ty)>
+            #vis #ident: Option<(#ty, #ty)>
           }
         })
         .collect::<Vec<_>>()
