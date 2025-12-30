@@ -2,6 +2,7 @@ use partial_derive2::{Diff, FieldDiff, Partial, PartialDiff};
 
 #[derive(Debug, Partial)]
 #[partial_derive(Debug)]
+#[diff_derive(Debug)]
 #[partial(diff, from)]
 struct User {
   name: Option<String>,
