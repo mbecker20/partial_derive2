@@ -4,7 +4,7 @@ use syn::{Data, DeriveInput, Expr, Field, Type, Visibility};
 
 #[proc_macro_derive(
   Partial,
-  attributes(partial, partial_derive, partial_attr, partial_default,)
+  attributes(partial, partial_derive, diff_derive, partial_attr, partial_default)
 )]
 pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
   let DeriveInput {
@@ -39,14 +39,26 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
       .expect("failed to get partial params");
   });
 
-  let derives = attrs
+  let partial_derives = attrs
     .iter()
     .find(|attr| attr.path().is_ident("partial_derive"));
 
-  let derives = if let Some(derives) = derives {
-    derives
+  let partial_derives = if let Some(partial_derives) = partial_derives {
+    partial_derives
       .parse_args()
       .expect("failed to parse partial_derive")
+  } else {
+    proc_macro2::TokenStream::new()
+  };
+
+  let diff_derives = attrs
+    .iter()
+    .find(|attr| attr.path().is_ident("diff_derive"));
+
+  let diff_derives = if let Some(diff_derives) = diff_derives {
+    diff_derives
+      .parse_args()
+      .expect("failed to parse diff_derive")
   } else {
     proc_macro2::TokenStream::new()
   };
@@ -237,7 +249,7 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     });
 
     quote! {
-      #[derive(#derives)]
+      #[derive(#diff_derives)]
       #vis struct #diff_ident {
         #(#diff_struct_fields),*
       }
@@ -286,7 +298,7 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
   // The final quote
   // ===============
   quote! {
-    #[derive(#derives)]
+    #[derive(#partial_derives)]
     #vis struct #partial_ident {
       #(#partial_fields),*
     }
