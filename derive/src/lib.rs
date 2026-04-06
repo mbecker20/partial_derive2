@@ -55,8 +55,7 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
       attr
         .parse_args::<proc_macro2::TokenStream>()
         .expect("failed to parse diff_derive")
-    })
-    .collect::<Vec<_>>();
+    });
 
   let partial_ident = Ident::new(&format!("Partial{}", ident), Span::call_site());
 
