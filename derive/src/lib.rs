@@ -41,27 +41,22 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
 
   let partial_derives = attrs
     .iter()
-    .find(|attr| attr.path().is_ident("partial_derive"));
-
-  let partial_derives = if let Some(partial_derives) = partial_derives {
-    partial_derives
-      .parse_args()
-      .expect("failed to parse partial_derive")
-  } else {
-    proc_macro2::TokenStream::new()
-  };
+    .filter(|attr| attr.path().is_ident("partial_derive"))
+    .map(|attr| {
+      attr
+        .parse_args::<proc_macro2::TokenStream>()
+        .expect("failed to parse partial_derive")
+    });
 
   let diff_derives = attrs
     .iter()
-    .find(|attr| attr.path().is_ident("diff_derive"));
-
-  let diff_derives = if let Some(diff_derives) = diff_derives {
-    diff_derives
-      .parse_args()
-      .expect("failed to parse diff_derive")
-  } else {
-    proc_macro2::TokenStream::new()
-  };
+    .filter(|attr| attr.path().is_ident("diff_derive"))
+    .map(|attr| {
+      attr
+        .parse_args::<proc_macro2::TokenStream>()
+        .expect("failed to parse diff_derive")
+    })
+    .collect::<Vec<_>>();
 
   let partial_ident = Ident::new(&format!("Partial{}", ident), Span::call_site());
 
@@ -102,7 +97,7 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     .then(|| {
       let fields = fields
         .iter()
-        .map(|(_, ident, ty, def, _)| quote!{
+        .map(|(_, ident, ty, def, _)| quote! {
           #ident: partial_derive2::value_maybe_as_option!(#ty, value.#ident.unwrap_or(#def), value.#ident)
         });
       quote! {
@@ -249,7 +244,7 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     });
 
     quote! {
-      #[derive(#diff_derives)]
+      #(#[derive(#diff_derives)])*
       #vis struct #diff_ident {
         #(#diff_struct_fields),*
       }
@@ -298,7 +293,7 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
   // The final quote
   // ===============
   quote! {
-    #[derive(#partial_derives)]
+    #(#[derive(#partial_derives)])*
     #vis struct #partial_ident {
       #(#partial_fields),*
     }
