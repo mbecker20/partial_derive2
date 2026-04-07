@@ -1,5 +1,5 @@
 use proc_macro2::{Ident, Span};
-use quote::quote;
+use quote::{quote, ToTokens};
 use syn::{Data, DeriveInput, Expr, Field, Type, Visibility};
 
 #[proc_macro_derive(
@@ -70,10 +70,10 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
   let partial_fields: Vec<_> = if skip_serializing {
     fields
       .iter()
-      .map(|(vis, ident, ty, _, partial_attr)| {
+      .map(|(vis, ident, ty, _, partial_attrs)| {
         quote! {
           #[serde(skip_serializing_if = "Option::is_none")]
-          #(#[#partial_attr])*
+          #(#partial_attrs)*
           #vis #ident: partial_derive2::make_option!(#ty)
         }
       })
@@ -81,9 +81,9 @@ pub fn derive_partial(input: proc_macro::TokenStream) -> proc_macro::TokenStream
   } else {
     fields
       .iter()
-      .map(|(vis, ident, ty, _, partial_attr)| {
+      .map(|(vis, ident, ty, _, partial_attrs)| {
         quote! {
-          #(#[#partial_attr])*
+          #(#partial_attrs)*
           #vis #ident: partial_derive2::make_option!(#ty)
         }
       })
@@ -357,26 +357,41 @@ fn get_fields(
          ty,
          ..
        }| {
-        let partial_default = attrs
-          .iter()
-          .find(|a| a.path().is_ident("partial_default"))
-          .map(|partial_default| {
-            let partial_default: Expr = partial_default
-              .parse_args()
-              .expect("failed to parse partial_default argument");
-            quote!(#partial_default)
-          })
-          .unwrap_or_else(|| quote!(Default::default()));
-        let partial_attr = attrs
-          .iter()
-          .filter(|a| a.path().is_ident("partial_attr"))
-          .map(|partial_attr| {
-            partial_attr
-              .parse_args()
-              .expect("failed to parse partial_attr argument")
-          })
-          .collect();
-        ident.map(|ident| (vis, ident, ty, partial_default, partial_attr))
+        let mut partial_default = None;
+        let mut partial_attrs = vec![];
+
+        for attr in attrs {
+          let Some(ident) = attr.path().get_ident() else {
+            continue;
+          };
+
+          match ident.to_string().as_str() {
+            "partial_default" => {
+              let parsed = attr
+                .parse_args::<Expr>()
+                .expect("failed to parse partial_default argument");
+              partial_default = Some(parsed.to_token_stream());
+            }
+            "partial_attr" => {
+              let parsed = attr
+                .parse_args::<proc_macro2::TokenStream>()
+                .expect("failed to parse partial_attr argument");
+              partial_attrs.push(quote!(#[#parsed]));
+            }
+            "doc" => partial_attrs.push(attr.to_token_stream()),
+            _ => (),
+          }
+        }
+
+        ident.map(|ident| {
+          (
+            vis,
+            ident,
+            ty,
+            partial_default.unwrap_or_else(|| quote!(Default::default())),
+            partial_attrs,
+          )
+        })
       },
     )
     .collect::<Vec<_>>()
