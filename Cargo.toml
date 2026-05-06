@@ -2,11 +2,11 @@
 members = ["derive", "example"]
 
 [workspace.package]
-version = "0.4.5"
+version = "0.5.0"
 description = "makes all the properties of a struct type an optional property"
 authors = ["rise0chen <rise0chen@163.com>", "mbecker20 <becker.maxh@gmail.com>"]
 categories = ["rust-patterns"]
-edition = "2021"
+edition = "2024"
 license = "MIT"
 repository = "https://github.com/mbecker20/partial_derive2"
 
@@ -22,4 +22,4 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-partial_derive2_derive = { version = "0.4.5", path = "derive" }
+partial_derive2_derive = { version = "0.5.0", path = "derive" }
